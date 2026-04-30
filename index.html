@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SW2.5 チャパレ整形ツール 試作版</title>
+  <style>
+    :root {
+      --bg: #141821;
+      --panel: #1d2430;
+      --panel-2: #252e3d;
+      --text: #edf1f7;
+      --muted: #aab5c5;
+      --accent: #9cc9ff;
+      --accent-2: #f0d38a;
+      --danger: #ff9b9b;
+      --ok: #9ff0bd;
+      --warn: #ffd27d;
+      --border: #3a4658;
+      --input: #0f131b;
+      --shadow: rgba(0, 0, 0, .35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #20283a 0, #141821 46%, #0d1017 100%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    header {
+      padding: 22px 18px 12px;
+      max-width: 1220px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.2vw, 2rem);
+      letter-spacing: .04em;
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+
+    main {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 12px 18px 42px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 920px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    section {
+      background: linear-gradient(180deg, var(--panel), #171d28);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 12px 32px var(--shadow);
+      padding: 16px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.08rem;
+      color: var(--accent-2);
+    }
+
+    h3 {
+      margin: 16px 0 8px;
+      font-size: .98rem;
+      color: var(--accent);
+    }
+
+    label {
+      display: block;
+      margin: 8px 0 5px;
+      color: var(--muted);
+      font-size: .86rem;
+    }
+
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--input);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: .92rem;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 170px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      white-space: pre-wrap;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(156, 201, 255, .14);
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 920px) {
+      .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 560px) {
+      .fields { grid-template-columns: 1fr; }
+    }
+
+    .wide { grid-column: span 2; }
+    .full { grid-column: 1 / -1; }
+
+    @media (max-width: 560px) {
+      .wide { grid-column: auto; }
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #33445d, #263247);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 650;
+      box-shadow: 0 4px 12px rgba(0,0,0,.18);
+    }
+
+    button:hover { filter: brightness(1.08); }
+    button:active { transform: translateY(1px); }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .secondary {
+      background: linear-gradient(180deg, #2a3343, #202838);
+      color: var(--muted);
+    }
+
+    .danger {
+      background: linear-gradient(180deg, #5a3137, #3c2025);
+      color: #ffd6d6;
+    }
+
+    .notice {
+      padding: 10px 12px;
+      border: 1px dashed var(--border);
+      background: rgba(255,255,255,.035);
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    .small { font-size: .82rem; color: var(--muted); }
+
+    .output {
+      min-height: 220px;
+      background: #090c12;
+      border-color: #46546a;
+    }
+
+    .mini-output {
+      min-height: 96px;
+      margin-top: 8px;
+      background: #090c12;
+      border-color: #46546a;
+    }
+
+    .preview-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .preview-item {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.035);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+      max-height: 360px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .item {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      border-radius: 12px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .item-check {
+      width: auto;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .item.selected { border-color: var(--accent); }
+    .item.medium { border-color: var(--warn); }
+    .item.low { border-color: var(--danger); }
+
+    .item-title {
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .item-meta {
+      color: var(--muted);
+      font-size: .82rem;
+      margin-top: 2px;
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .item-actions button {
+      padding: 6px 8px;
+      font-size: .78rem;
+    }
+
+    .status {
+      min-height: 1.5em;
+      color: var(--accent-2);
+      font-size: .9rem;
+      margin-top: 8px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: var(--muted);
+      font-size: .78rem;
+      background: rgba(255,255,255,.04);
+    }
+
+    .pill.high { color: var(--ok); border-color: rgba(159,240,189,.45); }
+    .pill.medium { color: var(--warn); border-color: rgba(255,210,125,.45); }
+    .pill.low { color: var(--danger); border-color: rgba(255,155,155,.45); }
+
+    code.inline {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 6px;
+      padding: 1px 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SW2.5 チャパレ整形ツール 試作版</h1>
+    <div class="subtitle">GPTsが出力したJSONテキストを読み込み、複数データを一括管理し、A〜Eレイアウトへ変換します。</div>
+  </header>
+
+  <main>
+    <section>
+      <h2>1. GPTs出力JSONの読み込み</h2>
+      <div class="notice">
+        GPTs側では画像から魔法・特技・技能などを抽出し、<code class="inline">entries</code> 配列を持つJSONテキストを出力します。ここへそのまま貼り付けてください。ファイル生成はGPTsに任せず、このツール側で保存します。
+      </div>
+      <label>GPTs JSON貼り付け欄</label>
+      <textarea id="gptJsonText" placeholder='例：{"version":1,"entries":[{"type":"magic","category":"神聖魔法","level":"1","name":"バニッシュ",...}]}'></textarea>
+      <div class="button-row">
+        <button id="importGptJsonBtn">JSONを解析して一括登録</button>
+        <button class="secondary" id="previewGptJsonBtn">解析だけして確認</button>
+        <button class="secondary" id="sampleJsonBtn">サンプルJSONを入れる</button>
+        <button class="secondary" id="clearGptJsonBtn">JSON欄を消去</button>
+      </div>
+      <div id="importStatus" class="status"></div>
+      <div id="importSummary" class="pill-row"></div>
+    </section>
+
+    <div class="grid-2">
+      <section>
+        <h2>2. 登録データ</h2>
+        <div class="button-row">
+          <button id="duplicateBtn">選択中を複製</button>
+          <button class="secondary" id="checkVisibleBtn">表示中を一括選択</button>
+          <button class="secondary" id="clearChecksBtn">選択解除</button>
+          <button class="secondary" id="fixDivineCategoryBtn">神聖魔法カテゴリを補正</button>
+          <button class="secondary" id="undoDeleteBtn">直前の削除を戻す</button>
+          <button class="secondary" id="sortBtn">分類・Lv順に並べ替え</button>
+          <button class="danger" id="deleteSelectedBtn">選択中を削除</button>
+        </div>
+        <label>絞り込み</label>
+        <div class="fields">
+          <div class="wide">
+            <input id="searchInput" placeholder="名称・分類・効果で検索" />
+          </div>
+          <div>
+            <select id="typeFilter">
+              <option value="">すべて</option>
+              <option value="magic">魔法</option>
+              <option value="technique">練技</option>
+              <option value="alchemy">賦術</option>
+              <option value="combatFeat">宣言特技</option>
+              <option value="riding">騎芸</option>
+              <option value="command">鼓砲・陣率</option>
+              <option value="soki">操気</option>
+              <option value="race">種族特徴</option>
+              <option value="secret">流派秘伝</option>
+              <option value="equipment">装備効果</option>
+              <option value="monster">魔物能力</option>
+              <option value="generic">その他</option>
+            </select>
+          </div>
+          <div>
+            <select id="confidenceFilter">
+              <option value="">信頼度すべて</option>
+              <option value="high">high</option>
+              <option value="medium">medium</option>
+              <option value="low">low</option>
+            </select>
+          </div>
+        </div>
+        <h3>一覧</h3>
+        <div id="dataList" class="list"></div>
+      </section>
+
+      <section>
+        <h2>3. 項目編集</h2>
+        <div class="fields">
+          <div>
+            <label>種類</label>
+            <select id="type">
+              <option value="magic">魔法</option>
+              <option value="technique">練技</option>
+              <option value="alchemy">賦術</option>
+              <option value="combatFeat">宣言特技</option>
+              <option value="riding">騎芸</option>
+              <option value="command">鼓砲・陣率</option>
+              <option value="soki">操気</option>
+              <option value="race">種族特徴</option>
+              <option value="secret">流派秘伝</option>
+              <option value="equipment">装備効果</option>
+              <option value="monster">魔物能力</option>
+              <option value="table">表のみ</option>
+              <option value="generic">その他</option>
+            </select>
+          </div>
+          <div>
+            <label>動作記号</label>
+            <input id="action" placeholder="▶ / >> / >>△ / ☑ / ○" />
+          </div>
+          <div>
+            <label>分類</label>
+            <input id="category" placeholder="神聖魔法 / 練技 / 賦術" />
+          </div>
+          <div>
+            <label>Lv / ランク</label>
+            <input id="level" placeholder="1 / Lv7 / ランク1" />
+          </div>
+
+          <div class="wide">
+            <label>名称</label>
+            <input id="name" placeholder="バニッシュ" />
+          </div>
+          <div>
+            <label>コスト</label>
+            <input id="cost" placeholder="MP3 / 赤1 / 1dHP" />
+          </div>
+          <div>
+            <label>対象</label>
+            <input id="target" placeholder="1体 / 1エリア(半径3m)/5" />
+          </div>
+
+          <div>
+            <label>射程</label>
+            <input id="range" placeholder="1(10m) / 2(30m) / 接触" />
+          </div>
+          <div>
+            <label>形状</label>
+            <input id="shape" placeholder="起点指定 / 射撃 / 貫通" />
+          </div>
+          <div>
+            <label>時間</label>
+            <input id="duration" placeholder="一瞬 / 10秒 / 3分" />
+          </div>
+          <div>
+            <label>抵抗 / 条件</label>
+            <input id="resist" placeholder="消滅 / 半減 / 任意" />
+          </div>
+
+          <div>
+            <label>属性</label>
+            <input id="attribute" placeholder="呪い / 毒 / -" />
+          </div>
+          <div>
+            <label>信頼度</label>
+            <select id="confidence">
+              <option value="high">high</option>
+              <option value="medium">medium</option>
+              <option value="low">low</option>
+            </select>
+          </div>
+          <div>
+            <label>用途アイコン</label>
+            <select id="icon">
+              <option value="">なし</option>
+              <option value="🗡">🗡 攻撃</option>
+              <option value="🛡">🛡 防御</option>
+              <option value="💚">💚 回復</option>
+              <option value="🧠">🧠 判定・知覚</option>
+              <option value="🦅">🦅 移動・飛行</option>
+              <option value="🩸">🩸 吸収・呪い</option>
+              <option value="🔥">🔥 属性攻撃</option>
+              <option value="⚙">⚙ 召喚・作成</option>
+            </select>
+          </div>
+          <div>
+            <label>出力形式</label>
+            <select id="layout">
+              <option value="A">A案：縦線コンパクト型</option>
+              <option value="B">B案：タグ型</option>
+              <option value="C">C案：効果改行型</option>
+              <option value="D">D案：アイコン分類型</option>
+              <option value="E">E案：DB変換特化型</option>
+            </select>
+          </div>
+
+          <div class="full">
+            <label>概要 overview（保存・検索用。通常チャパレ出力には使わない）</label>
+            <textarea id="overview" placeholder="概要欄の内容"></textarea>
+          </div>
+          <div class="full">
+            <label>効果全文 effectRaw</label>
+            <textarea id="effectRaw" placeholder="効果欄の全文"></textarea>
+          </div>
+          <div class="full">
+            <label>要約 effectSummary（チャパレ通常出力用。概要も必要ならここへ吸収）</label>
+            <textarea id="effectSummary" placeholder="セッション中に使いやすい要約"></textarea>
+          </div>
+          <div class="full">
+            <label>判定式・威力式 rolls（複数行可）</label>
+            <textarea id="rolls" placeholder="2d　【バニッシュ／フィアー表】"></textarea>
+          </div>
+          <div class="full">
+            <label>表 tables（JSON形式。必要な場合のみ）</label>
+            <textarea id="tables" placeholder='[{"name":"バニッシュ／フィアー表","columns":["2d","影響"],"rows":[...]}]'></textarea>
+          </div>
+          <div class="full">
+            <label>詠唱 chant / メモ memo</label>
+            <textarea id="chantMemo" placeholder="詠唱や要確認メモなど"></textarea>
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="formatBtn">この項目を変換</button>
+          <button id="updateBtn">選択中データを更新</button>
+          <button id="addBtn">新規データとして追加</button>
+          <button class="secondary" id="resetFormBtn">フォームを空にする</button>
+        </div>
+        <div id="formStatus" class="status"></div>
+      </section>
+    </div>
+
+    <section>
+      <h2>4. チャパレ出力</h2>
+      <div class="fields">
+        <div>
+          <label>出力する効果</label>
+          <select id="effectMode">
+            <option value="summary">要約版 effectSummary</option>
+            <option value="raw">全文版 effectRaw</option>
+            <option value="summaryRaw">要約＋全文</option>
+            <option value="none">効果なし</option>
+          </select>
+        </div>
+        <div>
+          <label>改行形式</label>
+          <select id="newlineMode">
+            <option value="actual">実改行</option>
+            <option value="escaped">\n 文字列</option>
+          </select>
+        </div>
+        <div>
+          <label>表の出力</label>
+          <select id="tableMode">
+            <option value="none">出さない</option>
+            <option value="summary">表要約</option>
+            <option value="raw">表全文</option>
+            <option value="both">表要約＋全文</option>
+          </select>
+        </div>
+        <div>
+          <label>威力式・ロールの出力</label>
+          <select id="rollMode">
+            <option value="existing">既存 rolls のみ</option>
+            <option value="none">rolls を出さない</option>
+            <option value="generate">不足分を補助生成</option>
+            <option value="both">既存＋不足分を補助生成</option>
+          </select>
+        </div>
+        <div>
+          <label>一括出力対象</label>
+          <select id="bulkMode">
+            <option value="filtered">現在の絞り込み対象</option>
+            <option value="all">全データ</option>
+            <option value="selected">選択中のみ</option>
+            <option value="checked">チェック選択中</option>
+          </select>
+        </div>
+        <div class="wide">
+          <label>
+            <input id="autoGenerateRollsOnBulk" type="checkbox" style="width:auto;margin-right:6px" />
+            一括出力時に不足rollsを補助生成する
+          </label>
+        </div>
+      </div>
+      <div class="button-row">
+        <button class="secondary" id="generateMissingRollsBtn">不足している威力式を補助生成</button>
+        <button class="secondary" id="generateSelectedRollsBtn">選択中データに威力式を補助生成</button>
+        <button class="secondary" id="bulkPreviewBtn">一括出力プレビュー</button>
+        <button class="secondary" id="individualPreviewBtn">個別プレビューを表示</button>
+        <button id="formatAllBtn">一括出力</button>
+        <button id="copyBtn">出力をコピー</button>
+        <button class="secondary" id="downloadTxtBtn">TXT出力</button>
+      </div>
+      <div id="bulkPreviewSummary" class="notice"></div>
+      <label>出力</label>
+      <textarea id="output" class="output" readonly></textarea>
+      <div id="individualPreview" class="preview-list"></div>
+    </section>
+
+    <section>
+      <h2>5. 保存・読み込み</h2>
+      <div class="button-row">
+        <button id="saveLocalBtn">ブラウザに保存</button>
+        <button id="loadLocalBtn">ブラウザから復元</button>
+        <button id="exportJsonBtn">JSONダウンロード</button>
+        <button class="secondary" id="importJsonBtn">JSONファイル読み込み</button>
+        <button class="danger" id="clearAllBtn">全データ削除</button>
+      </div>
+      <input id="jsonFileInput" type="file" accept="application/json,.json" style="display:none" />
+      <p class="small">ここで保存されるJSONは、GPTs出力を取り込んだ後の編集済みデータです。保管庫です。戦場に持ち込むのは上のチャパレ出力で十分です。</p>
+      <label>保存用JSONテキスト</label>
+      <textarea id="jsonText" placeholder="エクスポートしたJSONがここに出ます。ここへ貼り付けて読み込むこともできます。"></textarea>
+      <div class="button-row">
+        <button class="secondary" id="jsonToTextBtn">現在データをJSON欄へ出す</button>
+        <button class="secondary" id="loadJsonTextBtn">JSON欄から読み込む</button>
+      </div>
+      <div id="saveStatus" class="status"></div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const state = {
+      entries: [],
+      selectedIndex: null,
+      checkedIndexes: new Set(),
+      deletedStack: [],
+      lastPreview: null,
+    };
+
+    const typeLabels = {
+      magic: '魔法',
+      technique: '練技',
+      alchemy: '賦術',
+      combatFeat: '宣言',
+      riding: '騎芸',
+      command: '鼓砲・陣率',
+      soki: '操気',
+      race: '種族特徴',
+      secret: '秘伝',
+      equipment: '装備',
+      monster: '魔物能力',
+      table: '表',
+      generic: 'その他',
+    };
+
+    function stripObjectObject(text) {
+      return String(text || '').replace(/\[object Object\]/g, '').trim();
+    }
+
+    function objectText(value) {
+      if (value === undefined || value === null) return '';
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return stripObjectObject(value);
+      }
+      if (Array.isArray(value)) return value.map(objectText).filter(Boolean).join('\n');
+      if (typeof value === 'object') {
+        for (const key of ['command', 'roll', 'formula', 'expression', 'text', 'label']) {
+          const text = objectText(value[key]);
+          if (text) return text;
+        }
+        return '';
+      }
+      return stripObjectObject(value);
+    }
+
+    function normalizeTextValue(value) {
+      return stripObjectObject(objectText(value));
+    }
+
+    function normalizeRolls(value) {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.map(objectText).map(s => s.trim()).filter(Boolean);
+      return stringToLines(value);
+    }
+
+    function normalizeTables(value) {
+      const tables = safeJsonArray(value);
+      return tables.map(table => {
+        if (!table || typeof table !== 'object' || Array.isArray(table)) return null;
+        const rows = Array.isArray(table.rows) ? table.rows.map(row => {
+          if (!row || typeof row !== 'object' || Array.isArray(row)) {
+            const text = objectText(row);
+            return text ? { key: '', effectSummary: text } : null;
+          }
+          return {
+            ...row,
+            key: normalizeTextValue(row.key || row.dice || row.range),
+            dice: normalizeTextValue(row.dice),
+            range: normalizeTextValue(row.range),
+            effectSummary: normalizeTextValue(row.effectSummary || row.summary),
+            summary: normalizeTextValue(row.summary),
+            effectRaw: normalizeTextValue(row.effectRaw || row.effect),
+            effect: normalizeTextValue(row.effect),
+          };
+        }).filter(Boolean) : [];
+        return {
+          ...table,
+          name: normalizeTextValue(table.name),
+          columns: Array.isArray(table.columns) ? table.columns.map(objectText).filter(Boolean) : [],
+          rows,
+        };
+      }).filter(Boolean);
+    }
+
+    function normalizeEntry(raw) {
+      const entry = { ...raw };
+      entry.type = normalizeTextValue(entry.type) || 'generic';
+      entry.category = normalizeTextValue(entry.category);
+      entry.level = normalizeTextValue(entry.level ?? '');
+      entry.rank = normalizeTextValue(entry.rank ?? '');
+      entry.name = normalizeTextValue(entry.name);
+      entry.action = entry.action || guessAction(entry);
+      entry.action = normalizeTextValue(entry.action);
+      entry.cost = normalizeTextValue(entry.cost);
+      entry.target = normalizeTextValue(entry.target);
+      entry.range = normalizeTextValue(entry.range);
+      entry.shape = normalizeTextValue(entry.shape);
+      entry.duration = normalizeTextValue(entry.duration);
+      entry.resist = normalizeTextValue(entry.resist);
+      entry.attribute = normalizeTextValue(entry.attribute);
+      entry.overview = normalizeTextValue(entry.overview);
+      entry.effectRaw = normalizeTextValue(entry.effectRaw || entry.effect);
+      entry.effectSummary = normalizeTextValue(entry.effectSummary || entry.summary || entry.effect || entry.overview);
+      entry.rolls = normalizeRolls(entry.rolls);
+      entry.tables = normalizeTables(entry.tables);
+      entry.chant = normalizeTextValue(entry.chant);
+      entry.memo = normalizeTextValue(entry.memo);
+      entry.confidence = normalizeTextValue(entry.confidence) || 'high';
+      entry.icon = normalizeTextValue(entry.icon);
+      entry.createdAt = entry.createdAt || new Date().toISOString();
+      return entry;
+    }
+
+    function guessAction(entry) {
+      if (entry.type === 'combatFeat') return '☑';
+      if (['race', 'equipment', 'monster'].includes(entry.type)) return '○';
+      if (entry.type === 'magic') return '▶';
+      return '';
+    }
+
+    const magicPowerVars = {
+      '神聖魔法': '{神聖魔力}',
+      '基本神聖魔法': '{神聖魔力}',
+      '特殊神聖魔法': '{神聖魔力}',
+      '真語魔法': '{真語魔力}',
+      '操霊魔法': '{操霊魔力}',
+      '深智魔法': '{深智魔力}',
+      '妖精魔法': '{妖精魔力}',
+      '森羅魔法': '{森羅魔力}',
+      '召異魔法': '{召異魔力}',
+      '奈落魔法': '{奈落魔力}',
+    };
+
+    function appendMemoNote(entry, note) {
+      if (!note) return;
+      const memo = normalizeTextValue(entry.memo);
+      if (memo.includes(note)) return;
+      entry.memo = nonEmpty([memo, note]).join('\n');
+    }
+
+    function hasEffectiveRolls(entry) {
+      return normalizeRolls(entry.rolls).filter(roll => rollOutputAllowed(roll, entry)).length > 0;
+    }
+
+    function combinedEntryText(entry) {
+      return [
+        entry.category, entry.name, entry.overview, entry.effectRaw,
+        entry.effectSummary, entry.memo, entry.attribute, entry.resist,
+        entry.source && entry.source.title, entry.source && entry.source.note,
+      ].map(normalizeTextValue).filter(Boolean).join('\n');
+    }
+
+    function isDruidMagic(entry) {
+      return normalizeTextValue(entry.category) === '森羅魔法';
+    }
+
+    function divineCategoryHint(entry) {
+      if (normalizeTextValue(entry.category) !== '神聖魔法') return '';
+      const text = combinedEntryText(entry);
+      if (/特殊神聖魔法/.test(text)) return '特殊神聖魔法';
+      if (/基本神聖魔法/.test(text)) return '基本神聖魔法';
+      return '';
+    }
+
+    function fixDivineCategories(indexes = state.entries.map((_, i) => i)) {
+      let fixed = 0;
+      let unknown = 0;
+      indexes.forEach(index => {
+        const entry = state.entries[index];
+        if (!entry || normalizeTextValue(entry.category) !== '神聖魔法') return;
+        const category = divineCategoryHint(entry);
+        if (category) {
+          entry.category = category;
+          fixed += 1;
+        } else {
+          unknown += 1;
+          appendMemoNote(entry, '神聖魔法カテゴリ要確認');
+        }
+      });
+      if (state.selectedIndex !== null && state.entries[state.selectedIndex]) setFormData(state.entries[state.selectedIndex]);
+      renderList();
+      $('formStatus').textContent = `神聖魔法カテゴリ補正: ${fixed}件 / 判断不能: ${unknown}件`;
+    }
+
+    function magicPowerVar(entry, notes) {
+      const category = normalizeTextValue(entry.category);
+      const powerVar = magicPowerVars[category];
+      if (!powerVar) notes.push('魔力変数要確認');
+      return powerVar || '';
+    }
+
+    function extractPower(entry, text, notes) {
+      const dru = text.match(/Dru\[[0-9,\s]+\]/i);
+      if (dru) return { kind: 'dru', value: dru[0].replace(/\s+/g, '') };
+      if (isDruidMagic(entry)) {
+        const rangeDamage = text.match(/(\d{1,2})\s*[〜～~\-]\s*(\d{1,2})\s*\+\s*魔力点?の?物理ダメージ/);
+        if (rangeDamage) return { kind: 'dru', value: `Dru[${rangeDamage[1]},${rangeDamage[2]}]` };
+      }
+      const k = text.match(/\bk\s*(\d{1,3})\b/i);
+      if (k) return { kind: 'k', value: k[1] };
+      const jp = text.match(/威力\s*(\d{1,3})/);
+      if (jp) return { kind: 'k', value: jp[1] };
+      notes.push('威力値要確認');
+      return null;
+    }
+
+    function classifyPowerKind(entry, text, notes, power) {
+      if (power && power.kind === 'dru') return 'physical';
+      if (/回復|キュア|ヒール|リカバリー|HPを.+回復/.test(text)) return 'heal';
+      if (/物理ダメージ/.test(text)) return 'physical';
+      if (/魔法ダメージ|魔力点?の.*ダメージ|威力\d+\+魔力.*ダメージ|炎|雷|毒|呪い|純エネルギー/.test(text) && /ダメージ/.test(text)) return 'magic';
+      notes.push('回復/ダメージ種別要確認');
+      return '';
+    }
+
+    function generateRollsForEntry(entry, options = {}) {
+      const e = normalizeEntry(entry);
+      const notes = [];
+      const text = combinedEntryText(e);
+      const powerVar = magicPowerVar(e, notes);
+      const power = extractPower(e, text, notes);
+      const damageKind = classifyPowerKind(e, text, notes, power);
+      const rolls = [];
+
+      if (isDruidMagic(e) && (!power || power.kind !== 'dru')) {
+        notes.push('森羅魔法のDru式要確認');
+      }
+
+      if (powerVar && power && damageKind) {
+        if (isDruidMagic(e) && power.kind === 'dru') {
+          rolls.push(`${power.value}+${powerVar}+{魔力補正}+{物理ダメージ補正}　【${e.name || '森羅魔法'}／物理ダメージ】`);
+        } else if (damageKind === 'heal') {
+          rolls.push(`k${power.value}+${powerVar}+{魔力補正}+{回復量補正}@13　【回復】`);
+        } else if (damageKind === 'physical') {
+          rolls.push(`k${power.value}+${powerVar}+{魔力補正}+{物理ダメージ補正}@10　【物理ダメージ】`);
+        } else if (damageKind === 'magic') {
+          rolls.push(`k${power.value}+${powerVar}+{魔力補正}+{魔法ダメージ補正}@10　【魔法ダメージ】`);
+          if (/半減/.test(e.resist)) {
+            rolls.push(`hk${power.value}+${powerVar}+{魔力補正}h+({魔法ダメージ補正})@13　【半減】`);
+          }
+        }
+      }
+
+      if (options.writeNotes) notes.forEach(note => appendMemoNote(entry, note));
+      return { rolls: rolls.filter(Boolean), notes };
+    }
+
+    function generateMissingRollsForIndexes(indexes) {
+      let generated = 0;
+      let skipped = 0;
+      indexes.forEach(index => {
+        const entry = state.entries[index];
+        if (!entry || hasEffectiveRolls(entry)) {
+          skipped += 1;
+          return;
+        }
+        const result = generateRollsForEntry(entry, { writeNotes: true });
+        if (result.rolls.length) {
+          entry.rolls = result.rolls;
+          generated += 1;
+        } else {
+          skipped += 1;
+        }
+      });
+      if (state.selectedIndex !== null && state.entries[state.selectedIndex]) setFormData(state.entries[state.selectedIndex]);
+      renderList();
+      renderBulkPreviewSummary();
+      $('formStatus').textContent = `威力式補助生成: ${generated}件 / 生成なし: ${skipped}件`;
+    }
+
+    function stringToLines(value) {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.map(objectText).map(s => s.trim()).filter(Boolean);
+      return objectText(value).split('\n').map(s => s.trim()).filter(Boolean);
+    }
+
+    function safeJsonArray(value) {
+      if (!value) return [];
+      if (Array.isArray(value)) return value;
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function parseAnyJson(text) {
+      const cleaned = (text || '').trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```$/i, '')
+        .trim();
+      const data = JSON.parse(cleaned);
+      let entries = [];
+      if (Array.isArray(data)) entries = data;
+      else if (Array.isArray(data.entries)) entries = data.entries;
+      else if (data.type || data.name) entries = [data];
+      else throw new Error('entries配列が見つかりません。');
+      const source = data.source || {};
+      return {
+        source,
+        warnings: Array.isArray(data.warnings) ? data.warnings : [],
+        entries: entries.map(entry => normalizeEntry({ ...entry, source: entry.source || source })),
+      };
+    }
+
+    function getFormData() {
+      return normalizeEntry({
+        type: $('type').value,
+        action: $('action').value.trim(),
+        category: $('category').value.trim(),
+        level: $('level').value.trim(),
+        name: $('name').value.trim(),
+        cost: $('cost').value.trim(),
+        target: $('target').value.trim(),
+        range: $('range').value.trim(),
+        shape: $('shape').value.trim(),
+        duration: $('duration').value.trim(),
+        resist: $('resist').value.trim(),
+        attribute: $('attribute').value.trim(),
+        overview: $('overview').value.trim(),
+        effectRaw: $('effectRaw').value.trim(),
+        effectSummary: $('effectSummary').value.trim(),
+        rolls: stringToLines($('rolls').value),
+        tables: safeJsonArray($('tables').value),
+        chant: $('chantMemo').value.trim(),
+        memo: '',
+        confidence: $('confidence').value,
+        icon: $('icon').value,
+      });
+    }
+
+    function setFormData(entry) {
+      const e = normalizeEntry(entry || {});
+      $('type').value = e.type || 'generic';
+      $('action').value = e.action || '';
+      $('category').value = e.category || '';
+      $('level').value = e.level || e.rank || '';
+      $('name').value = e.name || '';
+      $('cost').value = e.cost || '';
+      $('target').value = e.target || '';
+      $('range').value = e.range || '';
+      $('shape').value = e.shape || '';
+      $('duration').value = e.duration || '';
+      $('resist').value = e.resist || '';
+      $('attribute').value = e.attribute || '';
+      $('overview').value = e.overview || '';
+      $('effectRaw').value = e.effectRaw || '';
+      $('effectSummary').value = e.effectSummary || '';
+      $('rolls').value = Array.isArray(e.rolls) ? e.rolls.join('\n') : '';
+      $('tables').value = Array.isArray(e.tables) && e.tables.length ? JSON.stringify(e.tables, null, 2) : '';
+      $('chantMemo').value = [e.chant, e.memo].filter(Boolean).join('\n');
+      $('confidence').value = e.confidence || 'high';
+      $('icon').value = e.icon || '';
+    }
+
+    function clearForm() {
+      setFormData({ type: 'magic', confidence: 'high' });
+      state.selectedIndex = null;
+      renderList();
+    }
+
+    function cleanupCheckedIndexes() {
+      state.checkedIndexes = new Set([...state.checkedIndexes].filter(i => i >= 0 && i < state.entries.length));
+    }
+
+    function shiftCheckedIndexesAfterDelete(deletedIndex) {
+      state.checkedIndexes = new Set([...state.checkedIndexes]
+        .filter(i => i !== deletedIndex)
+        .map(i => i > deletedIndex ? i - 1 : i));
+    }
+
+    function shiftCheckedIndexesAfterInsert(insertIndex) {
+      state.checkedIndexes = new Set([...state.checkedIndexes]
+        .map(i => i >= insertIndex ? i + 1 : i));
+    }
+
+    function regenerateBulkOutput() {
+      $('output').value = stripObjectObject(entriesForBulk().map(e => formatEntry(e, $('layout').value)).join('\n\n'));
+    }
+
+    function deleteEntryAt(index) {
+      const entry = state.entries[index];
+      if (!entry) return;
+      if (!confirm(`「${entry.name || '名称未設定'}」を削除します。よろしいですか？`)) return;
+      const regenerateOutput = confirm('削除後、現在の一括出力対象で出力欄を再生成しますか？');
+      state.deletedStack.push({
+        entry: JSON.parse(JSON.stringify(entry)),
+        index,
+        wasChecked: state.checkedIndexes.has(index),
+      });
+      shiftCheckedIndexesAfterDelete(index);
+      state.entries.splice(index, 1);
+      if (state.selectedIndex === index) {
+        state.selectedIndex = null;
+        clearForm();
+      } else if (state.selectedIndex !== null && state.selectedIndex > index) {
+        state.selectedIndex -= 1;
+      }
+      renderList();
+      renderBulkPreviewSummary();
+      if (regenerateOutput) regenerateBulkOutput();
+      $('formStatus').textContent = 'データを削除しました。Undoできます。';
+    }
+
+    function undoDelete() {
+      const deleted = state.deletedStack.pop();
+      if (!deleted) {
+        $('formStatus').textContent = '戻せる削除はありません。';
+        return;
+      }
+      const index = Math.min(deleted.index, state.entries.length);
+      shiftCheckedIndexesAfterInsert(index);
+      state.entries.splice(index, 0, normalizeEntry(deleted.entry));
+      state.selectedIndex = index;
+      if (deleted.wasChecked) state.checkedIndexes.add(index);
+      setFormData(state.entries[index]);
+      renderList();
+      renderBulkPreviewSummary();
+      $('formStatus').textContent = '直前の削除を戻しました。';
+    }
+
+    function categoryWithLevel(entry) {
+      const category = entry.category || typeLabels[entry.type] || '能力';
+      const lv = entry.level || entry.rank || '';
+      if (!lv) return category;
+      if (/^(Lv|lv|LV|ランク|第)/.test(String(lv))) return `${category}${lv}`;
+      if (/^\d+$/.test(String(lv))) return `${category}Lv${lv}`;
+      return `${category}${lv}`;
+    }
+
+    function rangeShape(entry) {
+      if (entry.range && entry.shape && entry.shape !== '-') return `${entry.range}${entry.shape}`;
+      if (entry.range && entry.shape === '-') return entry.range;
+      return entry.range || entry.shape || '';
+    }
+
+    function displayName(entry) {
+      const prefix = entry.action || '';
+      const cat = categoryWithLevel(entry);
+      const name = entry.name || '名称未設定';
+      return `${prefix}${cat}【${name}】`;
+    }
+
+    function nonEmpty(parts) {
+      return parts.filter(v => v !== undefined && v !== null && String(v).trim() !== '');
+    }
+
+    function cleanEffectText(text) {
+      let cleaned = normalizeTextNewlines(normalizeTextValue(text)).trim();
+      if (!cleaned) return '';
+      const metaLine = /^(抵抗|属性|時間|対象|射程|射程\/形状|射程・形状|形状|持続時間|効果時間|消費|MP)[:：]/;
+      let lines = cleaned.split('\n').map(line => line.trimEnd());
+      while (lines.length && metaLine.test(lines[lines.length - 1].trim())) lines.pop();
+      cleaned = lines.join('\n').trim();
+      cleaned = cleaned.replace(/(?:\n|^)(?:抵抗|属性|時間|対象|射程|射程\/形状|射程・形状|形状|持続時間|効果時間)[:：][^\n。]{1,30}。?\s*$/g, '').trim();
+      cleaned = cleaned.replace(/(?:。|\s)(?:抵抗|属性|時間|対象|射程|射程\/形状|射程・形状|形状|持続時間|効果時間)[:：][^。\n]{1,30}。?\s*$/g, '。').trim();
+      return cleaned;
+    }
+
+    function makeRawBlock(text) {
+      const cleaned = cleanEffectText(text);
+      if (!cleaned) return '';
+      if ($('newlineMode').value === 'escaped') {
+        return `効果:\\n${normalizeTextNewlines(cleaned).replace(/\n/g, '\\n')}`;
+      }
+      return `効果:\n${normalizeTextNewlines(cleaned)}`;
+    }
+
+    function effectParts(entry) {
+      const mode = $('effectMode').value;
+      if (mode === 'none') return { headerEffect: '', rawBlock: '' };
+      if (mode === 'raw') return { headerEffect: '', rawBlock: makeRawBlock(entry.effectRaw) };
+      if (mode === 'summaryRaw') {
+        return {
+          headerEffect: cleanEffectText(entry.effectSummary),
+          rawBlock: makeRawBlock(entry.effectRaw),
+        };
+      }
+      return { headerEffect: cleanEffectText(entry.effectSummary), rawBlock: '' };
+    }
+
+    function selectedEffect(entry) {
+      return effectParts(entry).headerEffect;
+    }
+
+    function normalizeTextNewlines(text) {
+      return String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    }
+
+    function applyNewlineMode(text) {
+      if ($('newlineMode').value === 'escaped') {
+        return normalizeTextNewlines(text).replace(/\n/g, '\\n');
+      }
+      return normalizeTextNewlines(text);
+    }
+
+    function formatTableBlock(text) {
+      if (!text) return '';
+      const normalized = normalizeTextNewlines(text);
+      if ($('newlineMode').value === 'escaped') return normalized.replace(/\n/g, '\\n');
+      return normalized;
+    }
+
+    function autoIcon(entry) {
+      const text = `${entry.name || ''} ${entry.effectSummary || ''} ${entry.effectRaw || ''} ${entry.attribute || ''}`;
+      if (/回復|治癒|リカバ|ヒール|キュア/.test(text)) return '💚';
+      if (/防護|防御|抵抗|軽減|プロテクション/.test(text)) return '🛡';
+      if (/吸収|呪い|HP.*MP|ドロー/.test(text)) return '🩸';
+      if (/炎|雷|水|氷|土|風|毒/.test(text)) return '🔥';
+      if (/探索|感知|判定|知覚|命中|回避/.test(text)) return '🧠';
+      if (/飛行|移動|跳躍|フライト|ウィング/.test(text)) return '🦅';
+      if (/召喚|作製|ゴーレム|アンデッド/.test(text)) return '⚙';
+      if (/ダメージ|威力|攻撃/.test(text)) return '🗡';
+      return '';
+    }
+
+    function isPowerTable(table) {
+      if (!table || typeof table !== 'object') return false;
+      const name = normalizeTextValue(table.name);
+      const columns = Array.isArray(table.columns) ? table.columns.map(normalizeTextValue).join(' ') : '';
+      const rows = Array.isArray(table.rows) ? table.rows : [];
+      const rowText = rows.map(row => {
+        if (!row || typeof row !== 'object') return normalizeTextValue(row);
+        return [row.key, row.dice, row.range, row.effectSummary, row.summary, row.effectRaw, row.effect]
+          .map(normalizeTextValue).filter(Boolean).join(' ');
+      }).join(' ');
+      const hay = `${name} ${columns} ${rowText}`;
+      if (/威力\s*\d*\s*表|威力\d+表|C値|クリティカル値/.test(hay)) return true;
+      if (/威力\d+\+魔力/.test(hay)) return true;
+      if (/[3-9]:\s*\d/.test(hay) && /1[0-2]:\s*\d/.test(hay) && !/(フィアー|行動表|効果決定|ランダム|変転|魔神)/.test(name)) return true;
+      return false;
+    }
+
+    function processingTables(entry) {
+      return Array.isArray(entry.tables) ? entry.tables.filter(table => !isPowerTable(table) && !isDruidDamageTable(table, entry)) : [];
+    }
+
+    function hasPowerTables(entry) {
+      return Array.isArray(entry.tables) && entry.tables.some(isPowerTable);
+    }
+
+    function isDruidDamageTable(table, entry) {
+      if (!isDruidMagic(entry) || !table || typeof table !== 'object') return false;
+      const name = normalizeTextValue(table.name);
+      const text = combinedEntryText(entry);
+      return /ダメージ表/.test(name) && /物理ダメージ|Dru\[[^\]]+\]|\d{1,2}\s*[〜～~\-]\s*\d{1,2}\s*\+\s*魔力/.test(text);
+    }
+
+    function formatTables(entry) {
+      const mode = $('tableMode').value;
+      const tables = processingTables(entry);
+      if (mode === 'none' || tables.length === 0) return '';
+      const blocks = [];
+      for (const table of tables) {
+        const lines = [];
+        lines.push(`表:${normalizeTextValue(table.name) || '名称未設定'}`);
+        const rows = Array.isArray(table.rows) ? table.rows : [];
+        for (const row of rows) {
+          const key = normalizeTextValue(row.key || row.dice || row.range);
+          const summary = normalizeTextValue(row.effectSummary || row.summary);
+          const raw = normalizeTextValue(row.effectRaw || row.effect);
+          if (mode === 'summary' && summary) lines.push(`${key}: ${summary}`);
+          else if (mode === 'raw' && raw) lines.push(`${key}: ${raw}`);
+          else if (mode === 'both') lines.push(nonEmpty([summary ? `${key}: ${summary}` : '', raw ? `　全文:${raw}` : '']).join('\n'));
+        }
+        blocks.push(lines.filter(Boolean).join('\n'));
+      }
+      return blocks.join('\n');
+    }
+
+    function effectiveRollMode() {
+      const mode = $('rollMode').value || 'existing';
+      if (mode === 'existing' && $('autoGenerateRollsOnBulk').checked) return 'both';
+      return mode;
+    }
+
+    function isCastingRoll(rollText) {
+      const text = normalizeTextValue(rollText);
+      if (!text) return false;
+      if (/Dru\[[^\]]+\]|^h?k\d+/i.test(text)) return false;
+      if (/[1-2]d6?\s*【.+表】|[1-2]d6?\s*　【.+表】/.test(text)) return false;
+      if (/行使|魔法行使|行使判定/.test(text)) return true;
+      if (/^2d6?\s*\+\s*\{[^}]*魔力\}(?:\s|$|　|【)/.test(text) && !/表|ダメージ|回復|半減|効果|フィアー/.test(text)) return true;
+      return false;
+    }
+
+    function isDruidDamageTableRoll(rollText, entry) {
+      const text = normalizeTextValue(rollText);
+      if (!isDruidMagic(entry)) return false;
+      if (/Dru\[[^\]]+\]/i.test(text)) return false;
+      return /^[12]d6?\s*(?:　|\s)*【[^】]*(?:ダメージ表|\/ダメージ表|／ダメージ表)[^】]*】/.test(text);
+    }
+
+    function isPowerTableTextRoll(rollText) {
+      const text = normalizeTextValue(rollText);
+      if (!text) return false;
+      if (/^h?k\d+|^Dru\[[^\]]+\]/i.test(text)) return false;
+      return /威力\s*\d+\s*表|威力\d+\+魔力|C値[:：]?なし|[3-9]:\s*\d.*1[0-2]:\s*\d/.test(text);
+    }
+
+    function rollOutputAllowed(rollText, entry = null) {
+      const text = normalizeTextValue(rollText);
+      return !!text && !isCastingRoll(text) && !isPowerTableTextRoll(text) && !isDruidDamageTableRoll(text, entry);
+    }
+
+    function rollsForOutput(entry) {
+      const mode = effectiveRollMode();
+      if (mode === 'none') return [];
+      const existing = normalizeRolls(entry.rolls).filter(roll => rollOutputAllowed(roll, entry));
+      if (mode === 'existing') return existing;
+      const generated = existing.length ? [] : generateRollsForEntry(entry).rolls;
+      if (mode === 'generate') return existing.length ? existing : generated;
+      return existing.length ? existing : generated;
+    }
+
+    function formatEntry(entry, layout) {
+      const e = normalizeEntry(entry);
+      const header = displayName(e);
+      const rs = rangeShape(e);
+      const baseParts = nonEmpty([e.cost, e.target, rs, e.duration, e.resist, e.attribute]);
+      const { headerEffect, rawBlock } = effectParts(e);
+      const rolls = rollsForOutput(e);
+      const tableText = formatTables(e);
+      const chant = e.chant ? [e.chant] : [];
+      let firstBlock = '';
+
+      if (layout === 'A') {
+        firstBlock = nonEmpty([header, ...baseParts, headerEffect]).join('｜');
+      } else if (layout === 'B') {
+        const tags = baseParts.map(v => `[${v}]`).join(' ');
+        firstBlock = `${header}${tags ? ' ' + tags : ''}${headerEffect ? ` ${headerEffect}` : ''}`;
+      } else if (layout === 'C') {
+        firstBlock = nonEmpty([header, ...baseParts]).join('｜');
+        if (headerEffect) firstBlock += `｜${headerEffect}`;
+      } else if (layout === 'D') {
+        const icon = e.icon || autoIcon(e);
+        firstBlock = `${icon || ''}${nonEmpty([header, ...baseParts, headerEffect]).join('｜')}`;
+      } else if (layout === 'E') {
+        const kv = [];
+        if (e.cost) kv.push(`cost=${e.cost}`);
+        if (e.target) kv.push(`target=${e.target}`);
+        if (e.range) kv.push(`range=${e.range}`);
+        if (e.shape) kv.push(`shape=${e.shape}`);
+        if (e.duration) kv.push(`duration=${e.duration}`);
+        if (e.resist) kv.push(`resist=${e.resist}`);
+        if (e.attribute) kv.push(`attribute=${e.attribute}`);
+        if (headerEffect) kv.push(`effect=${headerEffect.replace(/\n/g, ' / ')}`);
+        firstBlock = `${e.action || ''}【${e.category || typeLabels[e.type] || '能力'}:${e.level || e.rank || '-'}:${e.name || '名称未設定'}】|${kv.join('|')}`;
+      }
+
+      const headerLine = applyNewlineMode(firstBlock);
+      const rollLines = rolls.map(normalizeTextValue).filter(Boolean).join('\n');
+      const tableBlock = formatTableBlock(tableText);
+      const chantBlock = chant.map(applyNewlineMode).filter(Boolean).join('\n');
+      return stripObjectObject([headerLine, rawBlock, rollLines, tableBlock, chantBlock].filter(Boolean).join('\n'));
+    }
+
+    function currentFilteredIndexes() {
+      const q = $('searchInput').value.trim().toLowerCase();
+      const type = $('typeFilter').value;
+      const conf = $('confidenceFilter').value;
+      return state.entries.map((e, i) => ({ e, i })).filter(({ e }) => {
+        const hay = `${e.name || ''} ${e.category || ''} ${e.overview || ''} ${e.effectRaw || ''} ${e.effectSummary || ''}`.toLowerCase();
+        if (q && !hay.includes(q)) return false;
+        if (type && e.type !== type) return false;
+        if (conf && e.confidence !== conf) return false;
+        return true;
+      }).map(x => x.i);
+    }
+
+    function renderList() {
+      const list = $('dataList');
+      list.innerHTML = '';
+      cleanupCheckedIndexes();
+      renderBulkPreviewSummary();
+      const indexes = currentFilteredIndexes();
+      if (state.entries.length === 0) {
+        const div = document.createElement('div');
+        div.className = 'notice';
+        div.textContent = 'まだ登録データはありません。GPTs JSONを一括登録するか、右側のフォームから追加してください。';
+        list.appendChild(div);
+        return;
+      }
+      if (indexes.length === 0) {
+        const div = document.createElement('div');
+        div.className = 'notice';
+        div.textContent = '絞り込み条件に一致するデータがありません。';
+        list.appendChild(div);
+        return;
+      }
+
+      indexes.forEach(index => {
+        const entry = state.entries[index];
+        const item = document.createElement('div');
+        item.className = `item ${entry.confidence || ''}`;
+        if (index === state.selectedIndex) item.classList.add('selected');
+
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.className = 'item-check';
+        check.checked = state.checkedIndexes.has(index);
+        check.title = '一括出力対象にする';
+        check.onchange = () => {
+          if (check.checked) state.checkedIndexes.add(index);
+          else state.checkedIndexes.delete(index);
+        };
+
+        const left = document.createElement('div');
+        const title = document.createElement('div');
+        title.className = 'item-title';
+        title.textContent = displayName(entry);
+        const meta = document.createElement('div');
+        meta.className = 'item-meta';
+        const categoryNote = normalizeTextValue(entry.category) === '神聖魔法' ? ' / 神聖カテゴリ要確認' : '';
+        meta.textContent = `${typeLabels[entry.type] || entry.type} / ${entry.cost || 'costなし'} / ${entry.target || '対象なし'} / confidence:${entry.confidence || 'high'}${categoryNote}`;
+        left.append(title, meta);
+
+        const actions = document.createElement('div');
+        actions.className = 'item-actions';
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '編集';
+        editBtn.onclick = () => {
+          state.selectedIndex = index;
+          setFormData(entry);
+          renderList();
+        };
+        const outBtn = document.createElement('button');
+        outBtn.textContent = '出力';
+        outBtn.onclick = () => {
+          $('output').value = formatEntry(entry, $('layout').value);
+        };
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'danger';
+        deleteBtn.textContent = '削除';
+        deleteBtn.onclick = () => deleteEntryAt(index);
+        actions.append(editBtn, outBtn, deleteBtn);
+        item.append(check, left, actions);
+        list.appendChild(item);
+      });
+    }
+
+    function renderImportSummary(parsed) {
+      const wrap = $('importSummary');
+      wrap.innerHTML = '';
+      const counts = { high: 0, medium: 0, low: 0 };
+      for (const e of parsed.entries) counts[e.confidence || 'high'] = (counts[e.confidence || 'high'] || 0) + 1;
+      const parts = [
+        ['件数', parsed.entries.length, ''],
+        ['high', counts.high || 0, 'high'],
+        ['medium', counts.medium || 0, 'medium'],
+        ['low', counts.low || 0, 'low'],
+        ['warnings', parsed.warnings.length, parsed.warnings.length ? 'medium' : ''],
+      ];
+      for (const [label, value, cls] of parts) {
+        const pill = document.createElement('span');
+        pill.className = `pill ${cls}`;
+        pill.textContent = `${label}: ${value}`;
+        wrap.appendChild(pill);
+      }
+    }
+
+    function download(filename, content, type = 'text/plain') {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    $('previewGptJsonBtn').onclick = () => {
+      try {
+        const parsed = parseAnyJson($('gptJsonText').value);
+        state.lastPreview = parsed;
+        renderImportSummary(parsed);
+        $('importStatus').textContent = `解析成功。${parsed.entries.length}件を検出しました。まだ登録はしていません。`;
+      } catch (e) {
+        $('importStatus').textContent = `解析失敗: ${e.message}`;
+      }
+    };
+
+    $('importGptJsonBtn').onclick = () => {
+      try {
+        const parsed = parseAnyJson($('gptJsonText').value);
+        const startIndex = state.entries.length;
+        state.entries.push(...parsed.entries);
+        parsed.entries.forEach((_, offset) => state.checkedIndexes.add(startIndex + offset));
+        state.lastPreview = parsed;
+        renderImportSummary(parsed);
+        renderList();
+        $('importStatus').textContent = `${parsed.entries.length}件を一括登録しました。怪しい項目は confidence と warnings を確認してください。`;
+      } catch (e) {
+        $('importStatus').textContent = `登録失敗: ${e.message}`;
+      }
+    };
+
+    $('sampleJsonBtn').onclick = () => {
+      $('gptJsonText').value = JSON.stringify({
+        version: 1,
+        source: { system: 'SW2.5', sourceType: 'image', title: '神聖魔法サンプル', note: 'GPTs出力例' },
+        entries: [
+          {
+            type: 'magic', category: '神聖魔法', level: '1', name: 'バニッシュ', action: '▶', cost: 'MP3',
+            target: '1エリア(半径3m)/5', range: '2(30m)', shape: '起点指定', duration: '一瞬/さまざま', resist: '消滅', attribute: '-',
+            overview: '蛮族とアンデッドに悪影響を与える',
+            effectRaw: '不浄なるものの魂に衝撃を与えます。\n「分類:蛮族」「分類:アンデッド」のキャラクターに対し、「バニッシュ／フィアー表」にある悪影響を与えます。\n対象それぞれについて、2dを振り、該当する出目の効果を適用します。\nこれらの効果は、対象が「分類:蛮族」の場合、精神効果属性として処理されます。',
+            effectSummary: '概要: 蛮族とアンデッドに悪影響。効果: 蛮族･アンデッドに「バニッシュ／フィアー表」の悪影響。対象ごとに2dで効果決定。蛮族には精神効果属性。',
+            rolls: ['2d　【バニッシュ／フィアー表】'],
+            tables: [{ name: 'バニッシュ／フィアー表', columns: ['2d', '影響'], rows: [
+              { key: '2〜4', effectRaw: '対象は恐慌状態から凶暴化します。30秒(3ラウンド)の間、命中力判定に+2、回避力判定に-2を受けます。', effectSummary: '30秒、命中+2･回避-2。' },
+              { key: '5〜9', effectRaw: '対象は恐怖に襲われ、3分(18ラウンド)の間、命中力判定、回避力判定、魔法行使判定に-1を受けます。', effectSummary: '3分、命中･回避･魔法行使-1。' }
+            ] }],
+            confidence: 'high', memo: ''
+          },
+          {
+            type: 'technique', category: '練技', level: '', name: 'キャッツアイ', action: '>>△', cost: 'MP3', target: '術者', duration: '3R',
+            overview: '', effectRaw: '命中力判定に+1のボーナス修正を得ます。', effectSummary: '命中力+1。', rolls: [], tables: [], confidence: 'high'
+          }
+        ],
+        warnings: []
+      }, null, 2);
+    };
+
+    $('clearGptJsonBtn').onclick = () => {
+      $('gptJsonText').value = '';
+      $('importStatus').textContent = '';
+      $('importSummary').innerHTML = '';
+    };
+
+    $('formatBtn').onclick = () => {
+      $('output').value = formatEntry(getFormData(), $('layout').value);
+    };
+
+    $('addBtn').onclick = () => {
+      const entry = getFormData();
+      if (!entry.name) {
+        $('formStatus').textContent = '名称が空です。最低限、名称は入力してください。';
+        return;
+      }
+      state.entries.push(entry);
+      state.selectedIndex = state.entries.length - 1;
+      state.checkedIndexes.add(state.selectedIndex);
+      renderList();
+      $('formStatus').textContent = '新規データとして追加しました。';
+    };
+
+    $('updateBtn').onclick = () => {
+      if (state.selectedIndex === null) {
+        $('formStatus').textContent = '更新対象が選択されていません。登録データから「編集」を押してください。';
+        return;
+      }
+      state.entries[state.selectedIndex] = { ...getFormData(), updatedAt: new Date().toISOString() };
+      renderList();
+      $('formStatus').textContent = '選択中データを更新しました。';
+    };
+
+    $('resetFormBtn').onclick = clearForm;
+
+    $('duplicateBtn').onclick = () => {
+      if (state.selectedIndex === null) {
+        $('formStatus').textContent = '複製対象が選択されていません。';
+        return;
+      }
+      const copy = JSON.parse(JSON.stringify(state.entries[state.selectedIndex]));
+      copy.name = `${copy.name || '名称未設定'} コピー`;
+      copy.createdAt = new Date().toISOString();
+      shiftCheckedIndexesAfterInsert(state.selectedIndex + 1);
+      state.entries.splice(state.selectedIndex + 1, 0, copy);
+      state.selectedIndex += 1;
+      state.checkedIndexes.add(state.selectedIndex);
+      setFormData(copy);
+      renderList();
+    };
+
+    $('deleteSelectedBtn').onclick = () => {
+      if (state.selectedIndex === null) return;
+      deleteEntryAt(state.selectedIndex);
+    };
+
+    $('undoDeleteBtn').onclick = undoDelete;
+
+    $('checkVisibleBtn').onclick = () => {
+      currentFilteredIndexes().forEach(i => state.checkedIndexes.add(i));
+      renderList();
+    };
+
+    $('clearChecksBtn').onclick = () => {
+      state.checkedIndexes.clear();
+      renderList();
+    };
+
+    $('fixDivineCategoryBtn').onclick = () => {
+      fixDivineCategories();
+    };
+
+    $('sortBtn').onclick = () => {
+      const checkedEntries = new Set([...state.checkedIndexes].map(i => state.entries[i]).filter(Boolean));
+      state.entries.sort((a, b) => {
+        const ca = `${a.category || ''}`.localeCompare(`${b.category || ''}`, 'ja');
+        if (ca !== 0) return ca;
+        const la = parseInt(a.level || a.rank || '0', 10) || 0;
+        const lb = parseInt(b.level || b.rank || '0', 10) || 0;
+        if (la !== lb) return la - lb;
+        return `${a.name || ''}`.localeCompare(`${b.name || ''}`, 'ja');
+      });
+      state.selectedIndex = null;
+      state.checkedIndexes = new Set(state.entries.map((entry, index) => checkedEntries.has(entry) ? index : null).filter(i => i !== null));
+      renderList();
+    };
+
+    function entriesForBulk() {
+      const mode = $('bulkMode').value;
+      if (mode === 'all') return state.entries;
+      if (mode === 'selected') return state.selectedIndex === null ? [] : [state.entries[state.selectedIndex]];
+      if (mode === 'checked') return [...state.checkedIndexes].sort((a, b) => a - b).map(i => state.entries[i]).filter(Boolean);
+      return currentFilteredIndexes().map(i => state.entries[i]);
+    }
+
+    function bulkStats() {
+      const entries = entriesForBulk().map(normalizeEntry);
+      return {
+        total: entries.length,
+        tables: entries.filter(e => processingTables(e).length > 0).length,
+        powerTables: entries.filter(hasPowerTables).length,
+        rolls: entries.filter(hasEffectiveRolls).length,
+        noRolls: entries.filter(e => !hasEffectiveRolls(e)).length,
+        medium: entries.filter(e => e.confidence === 'medium').length,
+        low: entries.filter(e => e.confidence === 'low').length,
+      };
+    }
+
+    function renderBulkPreviewSummary() {
+      const wrap = $('bulkPreviewSummary');
+      if (!wrap) return;
+      const s = bulkStats();
+      wrap.textContent = `一括出力プレビュー: 対象 ${s.total}件 / 処理表あり ${s.tables}件 / 威力表あり ${s.powerTables}件（出力対象外） / rollsあり ${s.rolls}件 / rollsなし ${s.noRolls}件 / 要確認 ${s.medium + s.low}件 (medium ${s.medium}, low ${s.low})`;
+    }
+
+    function renderIndividualPreview() {
+      const wrap = $('individualPreview');
+      wrap.innerHTML = '';
+      const entries = entriesForBulk();
+      if (!entries.length) {
+        const div = document.createElement('div');
+        div.className = 'notice';
+        div.textContent = '個別プレビュー対象がありません。';
+        wrap.appendChild(div);
+        return;
+      }
+      entries.forEach(entry => {
+        const block = document.createElement('div');
+        block.className = 'preview-item';
+        const title = document.createElement('div');
+        title.className = 'item-title';
+        title.textContent = displayName(entry);
+        const text = document.createElement('textarea');
+        text.className = 'mini-output';
+        text.readOnly = true;
+        text.value = formatEntry(entry, $('layout').value);
+        const copy = document.createElement('button');
+        copy.className = 'secondary';
+        copy.textContent = 'コピー';
+        copy.onclick = async () => {
+          try {
+            await navigator.clipboard.writeText(text.value);
+            $('formStatus').textContent = '個別プレビューをコピーしました。';
+          } catch {
+            $('formStatus').textContent = 'コピーに失敗しました。手動で選択してコピーしてください。';
+          }
+        };
+        block.append(title, text, copy);
+        wrap.appendChild(block);
+      });
+    }
+
+    $('formatAllBtn').onclick = () => {
+      regenerateBulkOutput();
+      renderBulkPreviewSummary();
+    };
+
+    $('bulkPreviewBtn').onclick = renderBulkPreviewSummary;
+
+    $('individualPreviewBtn').onclick = renderIndividualPreview;
+
+    $('generateMissingRollsBtn').onclick = () => {
+      generateMissingRollsForIndexes(state.entries.map((_, index) => index));
+    };
+
+    $('generateSelectedRollsBtn').onclick = () => {
+      if (state.selectedIndex === null) {
+        $('formStatus').textContent = '補助生成するデータを選択してください。';
+        return;
+      }
+      generateMissingRollsForIndexes([state.selectedIndex]);
+    };
+
+    $('copyBtn').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText($('output').value);
+        $('formStatus').textContent = '出力をコピーしました。';
+      } catch {
+        $('formStatus').textContent = 'コピーに失敗しました。手動で選択してコピーしてください。';
+      }
+    };
+
+    $('downloadTxtBtn').onclick = () => {
+      const text = stripObjectObject($('output').value || entriesForBulk().map(e => formatEntry(e, $('layout').value)).join('\n\n'));
+      download('sw25_chapare_output.txt', text, 'text/plain;charset=utf-8');
+    };
+
+    $('saveLocalBtn').onclick = () => {
+      localStorage.setItem('sw25_chapare_converter_entries_v2', JSON.stringify(state.entries));
+      $('saveStatus').textContent = 'ブラウザに保存しました。';
+    };
+
+    $('loadLocalBtn').onclick = () => {
+      const raw = localStorage.getItem('sw25_chapare_converter_entries_v2') || localStorage.getItem('sw25_chapare_converter_entries');
+      if (!raw) {
+        $('saveStatus').textContent = '保存データがありません。';
+        return;
+      }
+      state.entries = JSON.parse(raw).map(normalizeEntry);
+      state.selectedIndex = null;
+      state.checkedIndexes.clear();
+      state.deletedStack = [];
+      renderList();
+      $('saveStatus').textContent = 'ブラウザ保存から復元しました。';
+    };
+
+    $('exportJsonBtn').onclick = () => {
+      const json = JSON.stringify({ version: 2, entries: state.entries }, null, 2);
+      $('jsonText').value = json;
+      download('sw25_chapare_data.json', json, 'application/json;charset=utf-8');
+    };
+
+    $('importJsonBtn').onclick = () => $('jsonFileInput').click();
+
+    $('jsonFileInput').onchange = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      try {
+        const parsed = parseAnyJson(text);
+        state.entries = parsed.entries;
+        state.selectedIndex = null;
+        state.checkedIndexes.clear();
+        state.deletedStack = [];
+        renderList();
+        $('jsonText').value = JSON.stringify({ version: 2, entries: state.entries }, null, 2);
+        $('saveStatus').textContent = 'JSONファイルを読み込みました。';
+      } catch (e) {
+        $('saveStatus').textContent = `JSONの読み込みに失敗しました: ${e.message}`;
+      }
+    };
+
+    $('jsonToTextBtn').onclick = () => {
+      $('jsonText').value = JSON.stringify({ version: 2, entries: state.entries }, null, 2);
+      $('saveStatus').textContent = '現在データをJSON欄へ出しました。';
+    };
+
+    $('loadJsonTextBtn').onclick = () => {
+      try {
+        const parsed = parseAnyJson($('jsonText').value);
+        state.entries = parsed.entries;
+        state.selectedIndex = null;
+        state.checkedIndexes.clear();
+        state.deletedStack = [];
+        renderList();
+        $('saveStatus').textContent = 'JSON欄から読み込みました。';
+      } catch (e) {
+        $('saveStatus').textContent = `JSON欄の内容を読み込めませんでした: ${e.message}`;
+      }
+    };
+
+    $('clearAllBtn').onclick = () => {
+      if (!confirm('全データを削除します。よろしいですか？')) return;
+      state.entries = [];
+      state.selectedIndex = null;
+      state.checkedIndexes.clear();
+      state.deletedStack = [];
+      renderList();
+      $('output').value = '';
+      $('saveStatus').textContent = '全データを削除しました。';
+    };
+
+    ['searchInput', 'typeFilter', 'confidenceFilter'].forEach(id => {
+      $(id).addEventListener('input', renderList);
+      $(id).addEventListener('change', renderList);
+    });
+
+    ['bulkMode', 'rollMode', 'tableMode', 'effectMode', 'newlineMode', 'autoGenerateRollsOnBulk'].forEach(id => {
+      $(id).addEventListener('change', renderBulkPreviewSummary);
+    });
+
+    renderList();
+    renderBulkPreviewSummary();
+  </script>
+</body>
+</html>
