@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
@@ -207,6 +207,12 @@
       padding: 10px;
     }
 
+    .saved-output-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
     .list {
       display: grid;
       gap: 8px;
@@ -306,6 +312,19 @@
 
   <main>
     <section>
+      <h2>0. GPTs抽出プロンプト</h2>
+      <div class="notice">
+        SW2.5の画像やテキストをJSON化するGPTsへ渡すための指示文です。コピーしてGPTs側の指示として使えます。
+      </div>
+      <label>抽出支援GPT用プロンプト</label>
+      <textarea id="extractPromptText" class="output" readonly></textarea>
+      <div class="button-row">
+        <button class="secondary" id="copyExtractPromptBtn">プロンプトをコピー</button>
+        <button class="secondary" id="resetExtractPromptBtn">標準プロンプトを再表示</button>
+      </div>
+      <div id="extractPromptStatus" class="status"></div>
+    </section>
+    <section>
       <h2>1. GPTs出力JSONの読み込み</h2>
       <div class="notice">
         GPTs側では画像から魔法・特技・技能などを抽出し、<code class="inline">entries</code> 配列を持つJSONテキストを出力します。ここへそのまま貼り付けてください。ファイル生成はGPTsに任せず、このツール側で保存します。
@@ -363,6 +382,19 @@
               <option value="medium">medium</option>
               <option value="low">low</option>
             </select>
+          </div>
+          <div>
+            <select id="formattedFilter">
+              <option value="">整形済みすべて</option>
+              <option value="missing">formattedText 未保存のみ</option>
+              <option value="saved">formattedText 保存済みのみ</option>
+            </select>
+          </div>
+          <div>
+            <input id="categoryFilter" placeholder="categoryで絞り込み" />
+          </div>
+          <div>
+            <input id="actionFilter" placeholder="actionで絞り込み" />
           </div>
         </div>
         <h3>一覧</h3>
@@ -500,8 +532,12 @@
           <button id="updateBtn">選択中データを更新</button>
           <button id="addBtn">新規データとして追加</button>
           <button class="secondary" id="resetFormBtn">フォームを空にする</button>
+          <button class="secondary" id="saveFormattedBtn">現在の出力を formattedText に保存</button>
+          <button class="secondary" id="addSavedOutputBtn">現在の出力を savedOutputs に追加</button>
+          <button class="secondary" id="showSavedOutputsBtn">savedOutputs 一覧を表示</button>
         </div>
         <div id="formStatus" class="status"></div>
+        <div id="savedOutputsPanel" class="saved-output-list"></div>
       </section>
     </div>
 
@@ -566,6 +602,9 @@
         <button id="formatAllBtn">一括出力</button>
         <button id="copyBtn">出力をコピー</button>
         <button class="secondary" id="downloadTxtBtn">TXT出力</button>
+        <button class="secondary" id="bulkSaveFormattedCheckedBtn">チェック選択中へ formattedText 一括保存</button>
+        <button class="secondary" id="bulkAddSavedCheckedBtn">チェック選択中へ savedOutputs 一括追加</button>
+        <button class="secondary" id="bulkSaveFormattedVisibleBtn">表示中へ formattedText 一括保存</button>
       </div>
       <div id="bulkPreviewSummary" class="notice"></div>
       <label>出力</label>
@@ -581,6 +620,9 @@
         <button id="exportJsonBtn">JSONダウンロード</button>
         <button class="secondary" id="importJsonBtn">JSONファイル読み込み</button>
         <button class="danger" id="clearAllBtn">全データ削除</button>
+        <button class="secondary" id="generateSkillDbBtn">スキルDB JSON生成</button>
+        <button class="secondary" id="downloadSkillDbBtn">スキルDB JSONダウンロード</button>
+        <button class="secondary" id="copySkillDbBtn">スキルDB JSONコピー</button>
       </div>
       <input id="jsonFileInput" type="file" accept="application/json,.json" style="display:none" />
       <p class="small">ここで保存されるJSONは、GPTs出力を取り込んだ後の編集済みデータです。保管庫です。戦場に持ち込むのは上のチャパレ出力で十分です。</p>
@@ -596,6 +638,174 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
+    const extractPromptTemplate = String.raw`
+あなたは「ソード・ワールド2.5」用のチャットパレットデータ抽出支援GPTです。
+
+ユーザーが提示した画像またはテキストから、魔法・練技・賦術・宣言特技・騎芸・操気・種族特徴・流派秘伝・装備効果・魔物能力・表データなどを読み取り、整形Webツールに読み込ませるためのJSONテキストを作成してください。
+最終的なA〜E形式への整形、コピー、TXT出力、formattedText保存はWebツール側で行います。あなたは抽出とJSON化に集中してください。
+
+通常時は必ずJSONテキストのみを出力してください。JSONの前後に説明文を書かないでください。Markdownコードブロックを付けないでください。.jsonファイル添付を試みないでください。formattedText / formattedTextProfile / savedOutputs は出力しないでください。
+
+必ず次の形式にしてください。
+{
+  "version": 1,
+  "source": {
+    "system": "SW2.5",
+    "sourceType": "image or text",
+    "title": "",
+    "note": ""
+  },
+  "entries": [
+    {
+      "type": "",
+      "category": "",
+      "level": "",
+      "rank": "",
+      "name": "",
+      "action": "",
+      "cost": "",
+      "target": "",
+      "range": "",
+      "shape": "",
+      "duration": "",
+      "resist": "",
+      "attribute": "",
+      "overview": "",
+      "effectRaw": "",
+      "effectSummary": "",
+      "rolls": [],
+      "tables": [],
+      "chant": "",
+      "chantRuby": "",
+      "memo": "",
+      "confidence": "high"
+    }
+  ],
+  "warnings": []
+}
+
+複数の魔法・能力がある場合は、すべて entries に分けてください。
+
+# type
+次から選んでください。
+magic: 魔法
+technique: 練技
+alchemy: 賦術
+combatFeat: 宣言特技
+riding: 騎芸
+command: 鼓砲・陣率
+soki: 操気
+race: 種族特徴
+secret: 流派秘伝
+equipment: 装備効果
+monster: 魔物能力
+table: 表のみ
+generic: その他
+判断できない場合は generic とし、memo または warnings に理由を書いてください。
+
+# action
+主動作: "▶"
+補助動作: ">>"
+戦闘準備でも使える補助: ">>△"
+宣言特技: "☑"
+常時能力・種族特徴・装備常時効果: "○"
+不明: ""
+画像やテキスト上に明示がない場合は、無理に補完せず空欄にしてください。
+
+# 抽出方針
+効果文は可能な限り全文を effectRaw に入れてください。「概要」欄がある場合は overview に入れてください。effectSummary は effectRaw を読んだうえで、セッション中に使いやすい要約案を作成してください。
+effectSummary には「要約:」という接頭辞を書かないでください。effectRaw には「効果:」という接頭辞を書かないでください。
+要約時も、数値、対象、射程、形状、時間、抵抗、属性、対象制限、例外処理、表参照、判定方法、重複可否、1ラウンド制限、1日制限、持続条件、解除条件は落とさないでください。
+読み取れない箇所や判断に迷う箇所は推測で確定せず、該当フィールドに「【要確認】」を入れ、warnings に理由を書いてください。
+
+# 魔法データ
+魔法の場合、category、level、name、cost、target、range、shape、duration、resist、attribute、overview、effectRaw、effectSummary、rolls、tables、chant、chantRuby を可能な限り抽出してください。
+「2(30m)／起点指定」は range: "2(30m)", shape: "起点指定" に分けてください。
+「1エリア(半径3m)／5」は target: "1エリア(半径3m)/5" としてください。
+対象が「1体X」「1体全」「術者」「任意の地点」「接触点」などの場合も資料表記を優先してください。
+
+# 神聖魔法の分類
+神聖魔法は、可能な限り category を「基本神聖魔法」または「特殊神聖魔法」にしてください。
+基本神聖魔法の一覧・表・章から抽出している場合は「基本神聖魔法」。特殊神聖魔法または特定神の特殊神聖魔法から抽出している場合は「特殊神聖魔法」。判断できない場合のみ「神聖魔法」とし、memo に「基本/特殊の分類要確認」と書いてください。
+
+# 詠唱とルビ
+詠唱がある場合、chant に本文、chantRuby に読み・異言語風表記を分けてください。Webツール側で |詠唱本文《詠唱ルビ》 と出力するため、chant に | や 《》 を含めないでください。詠唱がなければ両方空文字にしてください。
+
+# rolls
+rolls には、チャットパレットで実際に使う判定式・威力式・表ロール案を文字列として入れてください。rolls の各要素は必ず文字列にしてください。オブジェクト形式は禁止です。
+威力式を確実に読み取れる場合のみ rolls に入れてください。不安がある場合は rolls を空配列にし、memo に「威力式要確認」と書いてください。不確かな式を推測で作らないでください。
+回復は {回復量補正} を使い、C値は本文で特記のない限り @13 です。例: "k10+{神聖魔力}+{魔力補正}+{回復量補正}@13　【回復】"
+魔法ダメージは {魔法ダメージ補正} を使い、C値は本文で特記のない限り @10 です。例: "k20+{真語魔力}+{魔力補正}+{魔法ダメージ補正}@10　【魔法ダメージ】"
+抵抗半減の魔法ダメージは hk式を併記し、hk側のC値は @13 です。例: "hk20+{真語魔力}+{魔力補正}h+({魔法ダメージ補正})@13　【半減】"
+物理ダメージは {物理ダメージ補正} を使ってください。
+
+# 森羅魔法 Dru コマンド
+森羅魔法の一部ダメージは Dru[...] 形式の特殊コマンドを使います。Dru[...] の中身は2dの全出目を1つずつ並べず、必ず3区分に対応する3値だけを入れてください。
+Dru[2〜6の値,7〜9の値,10〜12の値]
+例: 2〜6:4、7〜9:7、10〜12:13 なら "Dru[4,7,13]+{森羅魔力}+{魔力補正}+{物理ダメージ補正}　【物理ダメージ】"
+Dru[...] 形式には @10 や @13 を付けないでください。Dru[...] の3値が読み取れない場合は rolls を空配列にし、memo に「森羅魔法のDru式要確認」と書いてください。
+
+# 威力表と処理表
+「威力10表」「威力20表」「威力30表」などの出目対応表は、原則 tables に入れないでください。チャットパレット用には威力表の中身ではなく k / hk / Dru の式を rolls に入れてください。
+森羅魔法のダメージ表は処理表ではなく、Dru[...] 式の材料として扱ってください。
+一方で、バニッシュ／フィアー表、魔神行動表、ランダム効果表、変転表、効果決定表など、実際にセッション中に参照・ロールする処理表は tables に分離してください。
+
+tables の形式:
+{
+  "name": "",
+  "columns": [],
+  "rows": [
+    {
+      "key": "",
+      "effectRaw": "",
+      "effectSummary": ""
+    }
+  ],
+  "memo": ""
+}
+2d表なら key に "2〜4" や "5〜9" のような出目範囲を入れてください。effectRaw には表の本文を可能な限り全文抽出し、effectSummary にはチャパレ用の要約案を入れてください。
+
+# 魔法以外
+魔法以外も同じJSON形式で抽出してください。存在しない項目は空文字で構いません。
+練技は cost に MP、duration に 3R などを入れ、effectRaw/effectSummary に効果を入れてください。
+賦術は cost に使用カードや色を入れてください。ランク別効果がある場合は effectRaw に全文、effectSummary に B/A/S/SS の要約を入れてください。例: "物理D上昇 B+1/A+2/S+3/SS+6"
+騎芸、操気、種族特徴、流派秘伝、装備効果は category と name を明確にし、cost、target、duration、条件相当の情報は該当欄または effectRaw に入れてください。不明な場合は memo に補足してください。
+
+# confidence / warnings
+confidence は high / medium / low のいずれかにしてください。
+high: ほぼ明瞭に読めている
+medium: 一部に要確認がある
+low: 読み取りにかなり不安がある
+medium または low の場合は、必ず warnings に理由を書いてください。entry 側の memo にも、どの項目が怪しいかを書いてください。
+
+# ユーザーが依頼文を忘れた場合
+ユーザーが画像だけ、または「これ」「これも」「お願いします」など短い依頼だけを投稿した場合でも、画像や直前の文脈からSW2.5の魔法・特技・技能・能力データ抽出だと判断できる場合は、追加指示を待たずに同じJSON形式で抽出してください。
+明確に別作業を依頼している場合のみ、この抽出処理を行わないでください。
+
+# 例外
+ユーザーが「まず確認したい」「表で見せて」と依頼した場合のみ、確認用の表形式で出しても構いません。それ以外はJSONテキストのみを出力してください。
+`.trim();
+
+    function initExtractPrompt() {
+      const area = $('extractPromptText');
+      if (!area) return;
+      area.value = extractPromptTemplate;
+      const status = $('extractPromptStatus');
+      $('resetExtractPromptBtn').onclick = () => {
+        area.value = extractPromptTemplate;
+        status.textContent = '標準プロンプトを再表示しました。';
+      };
+      $('copyExtractPromptBtn').onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(area.value);
+          status.textContent = '抽出プロンプトをコピーしました。';
+        } catch (e) {
+          area.focus();
+          area.select();
+          status.textContent = 'コピーに失敗しました。手動で選択してコピーしてください。';
+        }
+      };
+    }
 
     const state = {
       entries: [],
@@ -680,6 +890,226 @@
       }).filter(Boolean);
     }
 
+    function makeId(prefix = 'skill') {
+      return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    }
+
+    function normalizeSavedOutput(raw) {
+      const item = raw && typeof raw === 'object' ? raw : {};
+      return {
+        id: normalizeTextValue(item.id) || makeId('output'),
+        label: normalizeTextValue(item.label) || '出力保存',
+        layout: normalizeTextValue(item.layout),
+        effectMode: normalizeTextValue(item.effectMode),
+        newlineMode: normalizeTextValue(item.newlineMode),
+        tableMode: normalizeTextValue(item.tableMode),
+        rollMode: normalizeTextValue(item.rollMode),
+        profile: normalizeTextValue(item.profile),
+        text: normalizeTextValue(item.text),
+        createdAt: normalizeTextValue(item.createdAt) || new Date().toISOString(),
+      };
+    }
+
+    function profileTableName(mode) {
+      const names = { none: 'tableNone', summary: 'tableSummary', raw: 'tableRaw', both: 'tableBoth' };
+      return names[mode] || `table${mode || 'Unknown'}`;
+    }
+
+    function currentOutputProfile() {
+      const roll = $('rollMode').value || 'existing';
+      const rollName = `roll${roll.charAt(0).toUpperCase()}${roll.slice(1)}`;
+      return [
+        $('layout').value,
+        $('effectMode').value,
+        $('newlineMode').value,
+        profileTableName($('tableMode').value),
+        rollName,
+      ].join('-');
+    }
+
+    function currentOutputLabel() {
+      return `${$('layout').value}案・${$('effectMode').value}・${$('newlineMode').value}・${$('tableMode').value}・${$('rollMode').value || 'existing'}`;
+    }
+
+    function entryOutputText(entry) {
+      return formatEntry(entry, $('layout').value);
+    }
+
+    function saveFormattedForIndex(index) {
+      const entry = state.entries[index];
+      if (!entry) return false;
+      entry.formattedText = entryOutputText(entry);
+      entry.formattedTextProfile = currentOutputProfile();
+      entry.updatedAt = new Date().toISOString();
+      return !!entry.formattedText;
+    }
+
+    function addSavedOutputForIndex(index) {
+      const entry = state.entries[index];
+      if (!entry) return false;
+      const text = entryOutputText(entry);
+      if (!text) return false;
+      const output = normalizeSavedOutput({
+        id: makeId('output'),
+        label: currentOutputLabel(),
+        layout: $('layout').value,
+        effectMode: $('effectMode').value,
+        newlineMode: $('newlineMode').value,
+        tableMode: $('tableMode').value,
+        rollMode: $('rollMode').value || 'existing',
+        profile: currentOutputProfile(),
+        text,
+        createdAt: new Date().toISOString(),
+      });
+      entry.savedOutputs = Array.isArray(entry.savedOutputs) ? entry.savedOutputs : [];
+      entry.savedOutputs.push(output);
+      entry.updatedAt = new Date().toISOString();
+      return true;
+    }
+
+    function selectedSavedIndex() {
+      return state.selectedIndex === null ? null : state.selectedIndex;
+    }
+
+    function renderSavedOutputs(index = selectedSavedIndex()) {
+      const panel = $('savedOutputsPanel');
+      if (!panel) return;
+      panel.innerHTML = '';
+      if (index === null || !state.entries[index]) {
+        const div = document.createElement('div');
+        div.className = 'notice';
+        div.textContent = 'savedOutputs を表示する項目を選択してください。';
+        panel.appendChild(div);
+        return;
+      }
+      const entry = state.entries[index];
+      const outputs = Array.isArray(entry.savedOutputs) ? entry.savedOutputs : [];
+      const head = document.createElement('div');
+      head.className = 'notice';
+      head.textContent = `${entry.name || '名称未設定'} / formattedText: ${entry.formattedText ? 'あり' : 'なし'} / savedOutputs: ${outputs.length}件 / ${entry.formattedTextProfile || 'profileなし'}`;
+      panel.appendChild(head);
+      if (!outputs.length) return;
+      outputs.forEach((output, outputIndex) => {
+        const box = document.createElement('div');
+        box.className = 'preview-item';
+        const title = document.createElement('div');
+        title.className = 'item-title';
+        title.textContent = `${output.label || '保存出力'} / ${output.profile || output.layout || ''} / ${output.createdAt || ''}`;
+        const text = document.createElement('textarea');
+        text.className = 'mini-output';
+        text.readOnly = true;
+        text.value = output.text || '';
+        const row = document.createElement('div');
+        row.className = 'button-row';
+        const setBtn = document.createElement('button');
+        setBtn.textContent = '代表 formattedText に設定';
+        setBtn.onclick = () => {
+          entry.formattedText = output.text || '';
+          entry.formattedTextProfile = output.profile || [output.layout, output.effectMode, output.newlineMode, profileTableName(output.tableMode), output.rollMode].filter(Boolean).join('-');
+          entry.updatedAt = new Date().toISOString();
+          renderList();
+          renderSavedOutputs(index);
+          $('formStatus').textContent = 'savedOutputs から formattedText に設定しました。';
+        };
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'secondary';
+        copyBtn.textContent = 'コピー';
+        copyBtn.onclick = async () => {
+          try {
+            await navigator.clipboard.writeText(output.text || '');
+            $('formStatus').textContent = 'savedOutput をコピーしました。';
+          } catch {
+            $('formStatus').textContent = 'コピーに失敗しました。';
+          }
+        };
+        const delBtn = document.createElement('button');
+        delBtn.className = 'danger';
+        delBtn.textContent = '削除';
+        delBtn.onclick = () => {
+          if (!confirm('この savedOutput を削除しますか？')) return;
+          entry.savedOutputs.splice(outputIndex, 1);
+          entry.updatedAt = new Date().toISOString();
+          renderList();
+          renderSavedOutputs(index);
+        };
+        row.append(setBtn, copyBtn, delBtn);
+        box.append(title, text, row);
+        panel.appendChild(box);
+      });
+    }
+
+    function indexesChecked() {
+      return [...state.checkedIndexes].sort((a, b) => a - b).filter(i => state.entries[i]);
+    }
+
+    function saveFormattedForIndexes(indexes) {
+      let count = 0;
+      indexes.forEach(index => { if (saveFormattedForIndex(index)) count += 1; });
+      renderList();
+      renderBulkPreviewSummary();
+      return count;
+    }
+
+    function addSavedOutputForIndexes(indexes) {
+      let count = 0;
+      indexes.forEach(index => { if (addSavedOutputForIndex(index)) count += 1; });
+      renderList();
+      renderBulkPreviewSummary();
+      return count;
+    }
+
+    function skillDbEntry(entry) {
+      const e = normalizeEntry(entry);
+      return {
+        id: e.id,
+        type: e.type,
+        category: e.category,
+        level: e.level,
+        rank: e.rank,
+        name: e.name,
+        action: e.action,
+        cost: e.cost,
+        target: e.target,
+        range: e.range,
+        shape: e.shape,
+        duration: e.duration,
+        resist: e.resist,
+        attribute: e.attribute,
+        overview: e.overview,
+        effectRaw: e.effectRaw,
+        effectSummary: e.effectSummary,
+        rolls: e.rolls,
+        tables: e.tables,
+        chant: e.chant,
+        memo: e.memo,
+        confidence: e.confidence,
+        formattedText: e.formattedText,
+        formattedTextProfile: e.formattedTextProfile,
+        savedOutputs: e.savedOutputs,
+      };
+    }
+
+    function buildSkillDbJson() {
+      return JSON.stringify({
+        version: 1,
+        kind: 'sw25-skill-db',
+        exportedAt: new Date().toISOString(),
+        entries: state.entries.map(skillDbEntry),
+      }, null, 2);
+    }
+
+    function skillDbWarning() {
+      const missing = state.entries.filter(e => !normalizeTextValue(e.formattedText)).length;
+      if (!missing) return 'スキルDB JSONを生成しました。全項目に formattedText があります。';
+      return `formattedText が未保存の項目が ${missing} 件あります。第四段階ツールでブロック化する際に仮テキスト扱いになります。`;
+    }
+
+    function generateSkillDbJsonToTextArea() {
+      const json = buildSkillDbJson();
+      $('jsonText').value = json;
+      $('saveStatus').textContent = skillDbWarning();
+      return json;
+    }
     function normalizeEntry(raw) {
       const entry = { ...raw };
       entry.type = normalizeTextValue(entry.type) || 'generic';
@@ -705,6 +1135,11 @@
       entry.memo = normalizeTextValue(entry.memo);
       entry.confidence = normalizeTextValue(entry.confidence) || 'high';
       entry.icon = normalizeTextValue(entry.icon);
+      entry.id = normalizeTextValue(entry.id) || makeId('skill');
+      entry.formattedText = normalizeTextValue(entry.formattedText);
+      entry.formattedTextProfile = normalizeTextValue(entry.formattedTextProfile);
+      entry.savedOutputs = Array.isArray(entry.savedOutputs) ? entry.savedOutputs.map(normalizeSavedOutput).filter(o => o.text) : [];
+      entry.source = entry.source && typeof entry.source === 'object' ? entry.source : {};
       entry.createdAt = entry.createdAt || new Date().toISOString();
       return entry;
     }
@@ -1259,11 +1694,18 @@
       const q = $('searchInput').value.trim().toLowerCase();
       const type = $('typeFilter').value;
       const conf = $('confidenceFilter').value;
+      const formatted = $('formattedFilter').value;
+      const category = $('categoryFilter').value.trim().toLowerCase();
+      const action = $('actionFilter').value.trim().toLowerCase();
       return state.entries.map((e, i) => ({ e, i })).filter(({ e }) => {
         const hay = `${e.name || ''} ${e.category || ''} ${e.overview || ''} ${e.effectRaw || ''} ${e.effectSummary || ''}`.toLowerCase();
         if (q && !hay.includes(q)) return false;
         if (type && e.type !== type) return false;
         if (conf && e.confidence !== conf) return false;
+        if (formatted === 'missing' && e.formattedText) return false;
+        if (formatted === 'saved' && !e.formattedText) return false;
+        if (category && !`${e.category || ''}`.toLowerCase().includes(category)) return false;
+        if (action && !`${e.action || ''}`.toLowerCase().includes(action)) return false;
         return true;
       }).map(x => x.i);
     }
@@ -1312,7 +1754,9 @@
         const meta = document.createElement('div');
         meta.className = 'item-meta';
         const categoryNote = normalizeTextValue(entry.category) === '神聖魔法' ? ' / 神聖カテゴリ要確認' : '';
-        meta.textContent = `${typeLabels[entry.type] || entry.type} / ${entry.cost || 'costなし'} / ${entry.target || '対象なし'} / confidence:${entry.confidence || 'high'}${categoryNote}`;
+        const formattedState = entry.formattedText ? 'formattedTextあり' : 'formattedTextなし';
+        const savedCount = Array.isArray(entry.savedOutputs) ? entry.savedOutputs.length : 0;
+        meta.textContent = `id:${entry.id || ''} / ${typeLabels[entry.type] || entry.type} / ${entry.category || 'categoryなし'} / action:${entry.action || '-'} / ${formattedState} / savedOutputs:${savedCount}件 / ${entry.formattedTextProfile || 'profileなし'} / confidence:${entry.confidence || 'high'}${categoryNote}`;
         left.append(title, meta);
 
         const actions = document.createElement('div');
@@ -1323,17 +1767,45 @@
           state.selectedIndex = index;
           setFormData(entry);
           renderList();
+          renderSavedOutputs(index);
         };
         const outBtn = document.createElement('button');
         outBtn.textContent = '出力';
         outBtn.onclick = () => {
           $('output').value = formatEntry(entry, $('layout').value);
         };
+        const saveFmtBtn = document.createElement('button');
+        saveFmtBtn.className = 'secondary';
+        saveFmtBtn.textContent = 'fmt保存';
+        saveFmtBtn.onclick = () => {
+          saveFormattedForIndex(index);
+          renderList();
+          renderSavedOutputs(index);
+          $('formStatus').textContent = 'formattedText に保存しました。';
+        };
+        const addOutBtn = document.createElement('button');
+        addOutBtn.className = 'secondary';
+        addOutBtn.textContent = '履歴追加';
+        addOutBtn.onclick = () => {
+          addSavedOutputForIndex(index);
+          renderList();
+          renderSavedOutputs(index);
+          $('formStatus').textContent = 'savedOutputs に追加しました。';
+        };
+        const showOutBtn = document.createElement('button');
+        showOutBtn.className = 'secondary';
+        showOutBtn.textContent = '履歴表示';
+        showOutBtn.onclick = () => {
+          state.selectedIndex = index;
+          setFormData(entry);
+          renderList();
+          renderSavedOutputs(index);
+        };
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'danger';
         deleteBtn.textContent = '削除';
         deleteBtn.onclick = () => deleteEntryAt(index);
-        actions.append(editBtn, outBtn, deleteBtn);
+        actions.append(editBtn, outBtn, saveFmtBtn, addOutBtn, showOutBtn, deleteBtn);
         item.append(check, left, actions);
         list.appendChild(item);
       });
@@ -1452,8 +1924,19 @@
         $('formStatus').textContent = '更新対象が選択されていません。登録データから「編集」を押してください。';
         return;
       }
-      state.entries[state.selectedIndex] = { ...getFormData(), updatedAt: new Date().toISOString() };
+      const existing = state.entries[state.selectedIndex] || {};
+      const updated = getFormData();
+      state.entries[state.selectedIndex] = {
+        ...existing,
+        ...updated,
+        id: existing.id || updated.id,
+        formattedText: existing.formattedText || '',
+        formattedTextProfile: existing.formattedTextProfile || '',
+        savedOutputs: Array.isArray(existing.savedOutputs) ? existing.savedOutputs : [],
+        updatedAt: new Date().toISOString(),
+      };
       renderList();
+      renderSavedOutputs(state.selectedIndex);
       $('formStatus').textContent = '選択中データを更新しました。';
     };
 
@@ -1466,6 +1949,7 @@
       }
       const copy = JSON.parse(JSON.stringify(state.entries[state.selectedIndex]));
       copy.name = `${copy.name || '名称未設定'} コピー`;
+      copy.id = makeId('skill');
       copy.createdAt = new Date().toISOString();
       shiftCheckedIndexesAfterInsert(state.selectedIndex + 1);
       state.entries.splice(state.selectedIndex + 1, 0, copy);
@@ -1589,6 +2073,45 @@
       generateMissingRollsForIndexes(state.entries.map((_, index) => index));
     };
 
+    $('saveFormattedBtn').onclick = () => {
+      if (state.selectedIndex === null) {
+        $('formStatus').textContent = '保存する項目を選択してください。';
+        return;
+      }
+      saveFormattedForIndex(state.selectedIndex);
+      renderList();
+      renderSavedOutputs(state.selectedIndex);
+      $('formStatus').textContent = '現在の出力を formattedText に保存しました。';
+    };
+
+    $('addSavedOutputBtn').onclick = () => {
+      if (state.selectedIndex === null) {
+        $('formStatus').textContent = 'savedOutputs に追加する項目を選択してください。';
+        return;
+      }
+      addSavedOutputForIndex(state.selectedIndex);
+      renderList();
+      renderSavedOutputs(state.selectedIndex);
+      $('formStatus').textContent = '現在の出力を savedOutputs に追加しました。';
+    };
+
+    $('showSavedOutputsBtn').onclick = () => renderSavedOutputs();
+
+    $('bulkSaveFormattedCheckedBtn').onclick = () => {
+      const count = saveFormattedForIndexes(indexesChecked());
+      $('formStatus').textContent = `チェック選択中 ${count} 件へ formattedText を保存しました。`;
+    };
+
+    $('bulkAddSavedCheckedBtn').onclick = () => {
+      const count = addSavedOutputForIndexes(indexesChecked());
+      $('formStatus').textContent = `チェック選択中 ${count} 件へ savedOutputs を追加しました。`;
+    };
+
+    $('bulkSaveFormattedVisibleBtn').onclick = () => {
+      const count = saveFormattedForIndexes(currentFilteredIndexes());
+      $('formStatus').textContent = `表示中 ${count} 件へ formattedText を保存しました。`;
+    };
+
     $('generateSelectedRollsBtn').onclick = () => {
       if (state.selectedIndex === null) {
         $('formStatus').textContent = '補助生成するデータを選択してください。';
@@ -1609,6 +2132,25 @@
     $('downloadTxtBtn').onclick = () => {
       const text = stripObjectObject($('output').value || entriesForBulk().map(e => formatEntry(e, $('layout').value)).join('\n\n'));
       download('sw25_chapare_output.txt', text, 'text/plain;charset=utf-8');
+    };
+
+    $('generateSkillDbBtn').onclick = () => {
+      generateSkillDbJsonToTextArea();
+    };
+
+    $('downloadSkillDbBtn').onclick = () => {
+      const json = generateSkillDbJsonToTextArea();
+      download('sw25_skill_db.json', json, 'application/json;charset=utf-8');
+    };
+
+    $('copySkillDbBtn').onclick = async () => {
+      const json = generateSkillDbJsonToTextArea();
+      try {
+        await navigator.clipboard.writeText(json);
+        $('saveStatus').textContent = `${skillDbWarning()} コピーしました。`;
+      } catch {
+        $('saveStatus').textContent = `${skillDbWarning()} コピーに失敗しました。`;
+      }
     };
 
     $('saveLocalBtn').onclick = () => {
@@ -1686,7 +2228,7 @@
       $('saveStatus').textContent = '全データを削除しました。';
     };
 
-    ['searchInput', 'typeFilter', 'confidenceFilter'].forEach(id => {
+    ['searchInput', 'typeFilter', 'confidenceFilter', 'formattedFilter', 'categoryFilter', 'actionFilter'].forEach(id => {
       $(id).addEventListener('input', renderList);
       $(id).addEventListener('change', renderList);
     });
@@ -1695,6 +2237,7 @@
       $(id).addEventListener('change', renderBulkPreviewSummary);
     });
 
+    initExtractPrompt();
     renderList();
     renderBulkPreviewSummary();
   </script>
